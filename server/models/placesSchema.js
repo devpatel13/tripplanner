@@ -5,15 +5,23 @@ const placesSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  activities: [
-    {
-      activityName: String,
-      activityimage: String,
-      activityPrice: Number,
-      activityStartTime: Number,
-      activityEndTime: Number,
-    },
-  ],
+  placeImage: {
+    type: String,
+    required: true,
+  },
+  placeDesc: {
+    type: String,
+    required: true,
+  },
+  // activities: [
+  //   {
+  //     activityName: String,
+  //     activityimage: String,
+  //     activityPrice: Number,
+  //     activityStartTime: Number,
+  //     activityEndTime: Number,
+  //   },
+  // ],
 });
 
 const Places = mongoose.model("TouristPlace", placesSchema);

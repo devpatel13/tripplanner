@@ -8,11 +8,37 @@ const cookieParser = require("cookie-parser");
 require("../db/conn");
 const User = require("../models/userSchema");
 const Places = require("../models/placesSchema");
+const Activity = require("../models/activitySchema");
 
 router.use(cookieParser());
 // get
-router.get("/", (req, res) => {
-  res.send("home");
+router.get("/home", async (req, res) => {
+  try {
+    const allPlaces = await Places.find();
+    res.send({ data: allPlaces });
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+router.get("/update", async (req, res) => {
+  try {
+    const allPlaces = await Places.find();
+    res.send({ data: allPlaces });
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+router.get("/editactivity", async (req, res) => {
+  try {
+    placeName = req.query.placeName;
+    // console.log(placeName);
+    const allActivities = await Activity.find({ placeName: placeName });
+    res.send({ data: allActivities });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 router.get("/about", (req, res) => {
@@ -29,6 +55,17 @@ router.get("/login", (req, res) => {
 
 router.get("/contact", (req, res) => {
   res.send("contact");
+});
+
+router.get("/maketrip", async (req, res) => {
+  try {
+    placeName = req.query.placeName;
+    // console.log(placeName);
+    const allActivities = await Activity.find({ placeName: placeName });
+    res.send({ data: allActivities });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 // post
@@ -54,6 +91,192 @@ router.post("/signup", async (req, res) => {
       res.status(201).json({ message: "You are registered successfully" });
     }
   } catch (err) {
+    console.log(err);
+  }
+});
+
+// admin addplace
+router.post("/addplace", async (req, res) => {
+  const { name, image, desc } = req.body;
+  // console.log("in");
+
+  if (!name || !image || !desc) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    const placeExist = await Places.findOne({ placeName: name });
+    if (placeExist) {
+      return res.status(422).json({ error: "Place already exists." });
+    }
+
+    const place = new Places({
+      placeName: name,
+      placeImage: image,
+      placeDesc: desc,
+    });
+
+    const addPlace = await place.save();
+    if (addPlace) {
+      res.status(201).json({ message: "Place added successfully" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// admin updateplace
+router.post("/updateplace", async (req, res) => {
+  const { placeName, name, image, desc } = req.body;
+  // console.log("in");
+
+  if (!placeName || !name || !image || !desc) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    //
+    const result = await Places.updateOne(
+      { placeName },
+      {
+        $set: {
+          placeName: name,
+          placeImage: image,
+          placeDesc: desc,
+        },
+      }
+    );
+    if (result) {
+      res.status(201).json({ message: "Place updated successfully" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// admin updateactivity
+router.post("/updateactivity", async (req, res) => {
+  const {
+    rootActivityName,
+    placeName,
+    activityName,
+    activityImage,
+    activityPrice,
+    activityStartTime,
+    activityEndTime,
+  } = req.body;
+
+  if (
+    !rootActivityName ||
+    !placeName ||
+    !activityName ||
+    !activityImage ||
+    !activityPrice ||
+    !activityStartTime ||
+    !activityEndTime
+  ) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    //
+    const result = await Activity.updateOne(
+      { rootActivityName },
+      {
+        $set: {
+          placeName: placeName,
+          activityName: activityName,
+          activityImage: activityImage,
+          activityPrice: activityPrice,
+          activityStartTime: activityStartTime,
+          activityEndTime: activityEndTime,
+        },
+      }
+    );
+    if (result) {
+      res.status(201).json({ message: "Activity updated successfully" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// admin deleteplace
+router.post("/deleteplace", async (req, res) => {
+  const { placeName } = req.body;
+  // console.log("in");
+
+  if (!placeName) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    //
+    const result = await Places.deleteOne({ placeName });
+    if (result) {
+      res.status(201).json({ message: "Place deleted successfully" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+router.post("/deleteactivity", async (req, res) => {
+  const { activityName } = req.body;
+  // console.log("in");
+
+  if (!activityName) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    //
+    const result = await Activity.deleteOne({ activityName });
+    if (result) {
+      res.status(201).json({ message: "Activity deleted successfully" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+// add activity
+router.post("/addactivity", async (req, res) => {
+  const {
+    placeName,
+    activityName,
+    activityImage,
+    activityPrice,
+    activityStartTime,
+    activityEndTime,
+  } = req.body;
+
+  if (
+    !placeName ||
+    !activityName ||
+    !activityImage ||
+    !activityPrice ||
+    !activityStartTime ||
+    !activityEndTime
+  ) {
+    return res.status(422).json({ error: "Please fill all the fields" });
+  }
+
+  try {
+    const activity = new Activity({
+      placeName,
+      activityName,
+      activityImage,
+      activityPrice,
+      activityStartTime,
+      activityEndTime,
+    });
+
+    const addActivity = await activity.save();
+    if (addActivity) {
+      res.status(201).json({ message: "Activity added successfully" });
+    }
+  } catch (error) {
     console.log(err);
   }
 });
