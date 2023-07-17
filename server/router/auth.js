@@ -41,12 +41,37 @@ router.get("/editactivity", async (req, res) => {
   }
 });
 
-router.get("/about", (req, res) => {
-  res.send("about");
+router.get("/about", authenticate, async (req, res) => {
+  try {
+    if (req.user) {
+      const user = await User.findOne({ _id: req.user.id });
+      if (user)
+        res.status(200).json({
+          user,
+        });
+      else {
+        res.status(400).json({ error: true });
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: true });
+  }
 });
 
 router.get("/login", (req, res) => {
   res.send("login");
+});
+
+router.get("/logout", (req, res) => {
+  try {
+    res.clearCookie("token");
+    res.json({
+      status: "success",
+    });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 // router.get("/signup", (req, res) => {
@@ -84,10 +109,26 @@ router.post("/signup", async (req, res) => {
       return res.status(422).json({ error: "Email already exists." });
     }
 
-    const user = new User({ name, email, phone, password });
+    //new: encrypt data
+    const encryptPass = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      name,
+      email,
+      phone,
+      password: encryptPass,
+    });
 
-    const userRegistered = await user.save();
-    if (userRegistered) {
+    //generate jwt token
+    const token = jwt.sign({ id: user._id, email }, process.env.SECERET_KEY, {
+      expiresIn: "2h",
+    });
+    user.token = token;
+
+    //old
+    // const user = new User({ name, email, phone, password:encryptPass });
+
+    // const userRegistered = await user.save();
+    if (user) {
       res.status(201).json({ message: "You are registered successfully" });
     }
   } catch (err) {
@@ -309,8 +350,27 @@ router.post("/login", async (req, res) => {
       if (!isMatch) {
         res.status(400).json({ error: "Invalid Credentials" });
       } else {
-        const token = await userExist.generateAuthToken();
-        res.json({ message: "User Login successful", token: token });
+        //new: generate token
+        const token = jwt.sign({ id: userExist._id }, process.env.SECERET_KEY, {
+          expiresIn: "2h",
+        });
+        userExist.token = token;
+        userExist.password = undefined;
+        userExist.phone = undefined;
+
+        //cookies
+        const options = {
+          expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 100),
+          httpOnly: true,
+        };
+        res.status(200).cookie("token", token, options).json({
+          success: true,
+          userExist,
+        });
+
+        //old
+        // const token = await userExist.generateAuthToken();
+        // res.json({ message: "User Login successful", token: token });
       }
     } else {
       res.status(400).json({ error: "Invalid Credentials" });
@@ -382,6 +442,8 @@ router.post("/addactivity", async (req, res) => {
 
 // about(profile) page
 router.post("/about", authenticate, (req, res) => {
+  // console.log(req.);
+  //old
   res.json({ message: "User valid" });
 });
 
